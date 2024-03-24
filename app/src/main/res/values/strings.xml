@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">LocationPicker</string>
+    <string name="title_activity_location_picker">LocationPickerActivity</string>
 </resources>
