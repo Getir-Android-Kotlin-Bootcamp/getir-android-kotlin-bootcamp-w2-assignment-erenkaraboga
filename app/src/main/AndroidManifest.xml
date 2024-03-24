@@ -14,7 +14,12 @@
         android:theme="@style/Theme.LocationPicker"
         tools:targetApi="31">
         <activity
-            android:name=".MainActivity"
+            android:name=".presentation.location_picker.LocationPickerActivity"
+            android:exported="false"
+            android:label="@string/title_activity_location_picker"
+            android:theme="@style/Theme.LocationPicker" />
+        <activity
+            android:name=".presentation.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
