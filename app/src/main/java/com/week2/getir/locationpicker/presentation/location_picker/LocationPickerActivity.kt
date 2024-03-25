@@ -2,15 +2,19 @@ package com.week2.getir.locationpicker.presentation.location_picker
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.graphics.Typeface
 import android.location.LocationManager
-import android.location.LocationRequest
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.View
+import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import com.google.android.gms.common.api.ResolvableApiException
+import com.google.android.gms.common.api.Status
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.LocationSettingsRequest
@@ -21,14 +25,22 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.tasks.CancellationTokenSource
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.widget.Autocomplete
+import com.google.android.libraries.places.widget.AutocompleteActivity
+import com.google.android.libraries.places.widget.AutocompleteSupportFragment
+import com.google.android.libraries.places.widget.listener.PlaceSelectionListener
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import com.week2.getir.locationpicker.R
 import com.week2.getir.locationpicker.databinding.ActivityLocationPickerBinding
-import java.lang.Exception
+
 
 class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var binding: ActivityLocationPickerBinding
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private var map: GoogleMap? = null
+    private lateinit var autoComplete : AutocompleteSupportFragment
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityLocationPickerBinding.inflate(layoutInflater)
@@ -36,6 +48,8 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
         initMapView()
         initLocationService()
         checkPermissions()
+        initAutoComplete()
+        listener()
     }
 
     private fun initMapView() {
@@ -46,7 +60,18 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun initLocationService() {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
     }
+    private fun initAutoComplete(){
+        Places.initialize(applicationContext,getString(R.string.map_key))
+    }
 
+   private  fun listener(){
+       binding.etSearch.setOnClickListener{
+           val intent = Autocomplete.IntentBuilder(
+               AutocompleteActivityMode.OVERLAY, listOf(Place.Field.ID,Place.Field.ADDRESS,Place.Field.LAT_LNG)
+           ).build(this)
+           startForResult.launch(intent)
+       }
+   }
     private fun animateCamera(latLng: LatLng){
         map?.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,18f))
     }
@@ -62,7 +87,6 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
            )
            result.addOnCompleteListener{
                val location = LatLng(it.result.latitude,it.result.longitude)
-               Toast.makeText(this, "${result.result.latitude}  ${result.result.longitude}", Toast.LENGTH_SHORT).show()
                animateCamera(location)
            }
        }
@@ -109,6 +133,19 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
         )
 
     }
+
+    private val startForResult =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val resultCode = result.resultCode
+            val data = result.data
+            if (resultCode == Activity.RESULT_OK && data != null) {
+                val place = Autocomplete.getPlaceFromIntent(data)
+                place.latLng?.let { animateCamera(it) }
+                binding.tvLocation.text = place.address
+            } else if (resultCode == Activity.RESULT_CANCELED) {
+                Toast.makeText(this, "You didn't make a choice ", Toast.LENGTH_SHORT).show()
+            }
+        }
     private fun isLocationEnabled():Boolean{
         val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
         try {
@@ -117,11 +154,6 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
             e.printStackTrace()
         }
         return false
-    }
-
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
     }
 
     companion object {
