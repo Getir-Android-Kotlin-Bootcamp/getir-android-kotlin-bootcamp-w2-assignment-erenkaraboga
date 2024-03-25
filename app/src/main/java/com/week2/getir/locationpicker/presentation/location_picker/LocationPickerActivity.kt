@@ -47,29 +47,11 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
     }
 
-    @SuppressLint("MissingPermission")
-    private fun checkPermissions() {
-        val locationPermissionRequest = registerForActivityResult(
-            ActivityResultContracts.RequestMultiplePermissions()
-        ) { permissions ->
-            when {
-                permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) ||
-                        permissions.getOrDefault(
-                            Manifest.permission.ACCESS_COARSE_LOCATION,
-                            false
-                        ) -> {
-                    Toast.makeText(this, "Location access granted", Toast.LENGTH_SHORT).show()
-                    getLocation()
-                }
-            }
-        }
-        locationPermissionRequest.launch(
-            arrayOf(
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            )
-        )
-
+    private fun animateCamera(latLng: LatLng){
+        map?.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,18f))
+    }
+    override fun onMapReady(googleMap: GoogleMap) {
+        map = googleMap
     }
     @SuppressLint("MissingPermission")
    private fun getLocation(){
@@ -104,6 +86,29 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
     }
+    private fun checkPermissions() {
+        val locationPermissionRequest = registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            when {
+                permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) ||
+                        permissions.getOrDefault(
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                            false
+                        ) -> {
+                    Toast.makeText(this, "Location access granted", Toast.LENGTH_SHORT).show()
+                    getLocation()
+                }
+            }
+        }
+        locationPermissionRequest.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        )
+
+    }
     private fun isLocationEnabled():Boolean{
         val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
         try {
@@ -113,12 +118,7 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
         }
         return false
     }
-    private fun animateCamera(latLng: LatLng){
-        map?.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,18f))
-    }
-    override fun onMapReady(googleMap: GoogleMap) {
-        map = googleMap
-    }
+
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
