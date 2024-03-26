@@ -56,10 +56,11 @@
 <ul>
 <li>This app utilizes Google Maps API for selecting and displaying the user's location.</li>
 <li>The built-in geocoding package in Kotlin was NOT USED because Google Reverse Geocoding API was utilized to ensure accuracy.</li>
-  
-</ul>
+
+
+<h2>Apk Drive Link</h2>
+https://drive.google.com/file/d/1PLks1f8IUa7oHFcEuz0K71vr_9-0JEqc/view?usp=sharing
 
 https://github.com/Getir-Android-Kotlin-Bootcamp/getir-android-kotlin-bootcamp-w2-assignment-erenkaraboga/assets/74095539/0d212420-c20c-4167-9205-752b7b93984e
-
 </body>
 </html>
