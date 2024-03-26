@@ -59,5 +59,7 @@
   
 </ul>
 
+https://github.com/Getir-Android-Kotlin-Bootcamp/getir-android-kotlin-bootcamp-w2-assignment-erenkaraboga/assets/74095539/0d212420-c20c-4167-9205-752b7b93984e
+
 </body>
 </html>
