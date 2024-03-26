@@ -5,16 +5,14 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.graphics.Typeface
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.location.LocationManager
 import android.os.Bundle
-import android.view.View
-import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.gms.common.api.ResolvableApiException
-import com.google.android.gms.common.api.Status
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.LocationSettingsRequest
@@ -23,14 +21,14 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.widget.Autocomplete
-import com.google.android.libraries.places.widget.AutocompleteActivity
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment
-import com.google.android.libraries.places.widget.listener.PlaceSelectionListener
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import com.week2.getir.locationpicker.R
 import com.week2.getir.locationpicker.databinding.ActivityLocationPickerBinding
@@ -67,7 +65,7 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
    private  fun listener(){
        binding.etSearch.setOnClickListener{
            val intent = Autocomplete.IntentBuilder(
-               AutocompleteActivityMode.OVERLAY, listOf(Place.Field.ID,Place.Field.ADDRESS,Place.Field.LAT_LNG)
+               AutocompleteActivityMode.OVERLAY, listOf(Place.Field.ID,Place.Field.ADDRESS,Place.Field.LAT_LNG,Place.Field.ADDRESS_COMPONENTS)
            ).build(this)
            startForResult.launch(intent)
        }
@@ -75,6 +73,13 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun animateCamera(latLng: LatLng){
         map?.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,18f))
     }
+    private fun addMarkerToLocation(latLng: LatLng){
+        val originalBitmap = BitmapFactory.decodeResource(resources, R.drawable.ic_map_pin)
+        val resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, 500, 500, false)
+        val icon = BitmapDescriptorFactory.fromBitmap(resizedBitmap)
+        map?.addMarker(MarkerOptions().position(latLng).icon(icon))
+    }
+
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
     }
@@ -88,6 +93,7 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
            result.addOnCompleteListener{
                val location = LatLng(it.result.latitude,it.result.longitude)
                animateCamera(location)
+               addMarkerToLocation(location)
            }
        }
        else{
@@ -154,6 +160,15 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
             e.printStackTrace()
         }
         return false
+    }
+    fun resizeBitmap(drawableName: String?, width: Int, height: Int): Bitmap? {
+        val imageBitmap = BitmapFactory.decodeResource(
+            resources, resources.getIdentifier(
+                drawableName, "drawable",
+                packageName
+            )
+        )
+        return Bitmap.createScaledBitmap(imageBitmap, width, height, false)
     }
 
     companion object {
