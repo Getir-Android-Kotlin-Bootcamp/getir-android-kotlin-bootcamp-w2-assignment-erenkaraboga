@@ -38,7 +38,6 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var binding: ActivityLocationPickerBinding
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private var map: GoogleMap? = null
-    private lateinit var autoComplete : AutocompleteSupportFragment
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityLocationPickerBinding.inflate(layoutInflater)
