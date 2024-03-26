@@ -147,6 +147,7 @@
                 android:ellipsize="end"
                 android:fontFamily="@font/poppins_medium"
                 android:maxLines="2"
+                android:text="@string/waiting_for_selection"
                 android:textColor="#09051C"
                 android:textSize="15sp"
                 app:layout_constraintBottom_toBottomOf="@+id/ivLocation"

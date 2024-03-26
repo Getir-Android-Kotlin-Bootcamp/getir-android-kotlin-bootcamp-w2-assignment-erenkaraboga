@@ -203,7 +203,7 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
             if (resultCode == Activity.RESULT_OK) {
                 getLocation()
             } else {
-                Toast.makeText(this, getString(R.string.you_did_not_make_choice), Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.failed_to_get_location), Toast.LENGTH_SHORT).show()
             }
         }
     }

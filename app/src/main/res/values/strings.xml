@@ -9,4 +9,6 @@
     <string name="location_access_granted">Location access granted</string>
     <string name="failed_to_get_location">Failed to get current location</string>
     <string name="you_did_not_make_choice">You didn\'t make a choice</string>
+    <string name="location_selected">Location Selected Status 200</string>
+    <string name="waiting_for_selection">Waiting for Selection</string>
 </resources>
