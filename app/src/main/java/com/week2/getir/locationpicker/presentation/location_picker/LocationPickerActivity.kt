@@ -34,6 +34,7 @@ import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.widget.Autocomplete
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
+import com.week2.getir.locationpicker.BuildConfig
 import com.week2.getir.locationpicker.R
 import com.week2.getir.locationpicker.databinding.ActivityLocationPickerBinding
 import dagger.hilt.android.AndroidEntryPoint
@@ -42,102 +43,79 @@ import kotlinx.coroutines.flow.onEach
 
 @AndroidEntryPoint
 class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
+
     private val viewModel: LocationPickerViewModel by viewModels()
     private lateinit var binding: ActivityLocationPickerBinding
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private var map: GoogleMap? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityLocationPickerBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        initMapView()
-        initLocationService()
+
+        initializeViews()
+        setUpListeners()
+        observeReverseAddress()
         checkPermissions()
-        initAutoComplete()
-        setUpObservers()
-        listener()
     }
 
-    private fun initMapView() {
+    private fun initializeViews() {
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
-    }
-
-    private fun initLocationService() {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-    }
-    private fun initAutoComplete(){
-        Places.initialize(applicationContext,getString(R.string.map_key))
+        Places.initialize(applicationContext, BuildConfig.PLACES_KEY)
     }
 
-   private  fun listener(){
-       binding.etSearch.setOnClickListener{
-           val intent = Autocomplete.IntentBuilder(
-               AutocompleteActivityMode.OVERLAY, listOf(Place.Field.ID,Place.Field.ADDRESS,Place.Field.LAT_LNG,Place.Field.ADDRESS_COMPONENTS)
-           ).build(this)
-           startForResult.launch(intent)
-       }
-   }
-    private fun animateCamera(latLng: LatLng){
-        map?.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,18f))
+    private fun setUpListeners() {
+        binding.etSearch.setOnClickListener { startLocationSearch() }
+        binding.btNext.setOnClickListener { onNextButtonClicked() }
     }
-    private fun addMarkerToLocation(latLng: LatLng){
-        val originalBitmap = BitmapFactory.decodeResource(resources, R.drawable.ic_map_pin)
-        val resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, 500, 500, false)
-        val icon = BitmapDescriptorFactory.fromBitmap(resizedBitmap)
-        map?.addMarker(MarkerOptions().position(latLng).icon(icon))
+
+    private fun startLocationSearch() {
+        val intent = Autocomplete.IntentBuilder(
+            AutocompleteActivityMode.OVERLAY,
+            listOf(
+                Place.Field.ID,
+                Place.Field.ADDRESS,
+                Place.Field.LAT_LNG,
+                Place.Field.ADDRESS_COMPONENTS
+            )
+        ).build(this)
+        startForResult.launch(intent)
+    }
+
+    private fun onNextButtonClicked() {
+        map?.cameraPosition?.target?.let { place ->
+            addMarkerToLocation(place)
+            viewModel.getReverseAddress(combineCoordinates(place))
+        }
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
     }
-    @SuppressLint("MissingPermission")
-   private fun getLocation(){
-       if (isLocationEnabled()) {
-           val result = fusedLocationClient.getCurrentLocation(
-               Priority.PRIORITY_BALANCED_POWER_ACCURACY,
-               CancellationTokenSource().token
-           )
-           result.addOnCompleteListener{
-               val location = LatLng(it.result.latitude,it.result.longitude)
-               animateCamera(location)
-               addMarkerToLocation(location)
-               viewModel.getReverseAddress(combineCoordinates(location))
-           }
-       }
-       else{
-           Toast.makeText(this, "Please turn on location", Toast.LENGTH_SHORT).show()
-           createLocationServicePopUp()
-       }
+
+    private fun observeReverseAddress() {
+        viewModel.getReverseAddressViewState()
+            .flowWithLifecycle(lifecycle, Lifecycle.State.STARTED)
+            .onEach { state -> handleStateChange(state) }
+            .launchIn(lifecycleScope)
     }
-    private fun createLocationServicePopUp(){
-        val locationRequest = com.google.android.gms.location.LocationRequest.Builder(
-            Priority.PRIORITY_HIGH_ACCURACY,10000
-        ).setMinUpdateIntervalMillis(5000).build()
-        val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
-        val client = LocationServices.getSettingsClient(this)
-        val task= client.checkLocationSettings(builder.build())
-        task.addOnFailureListener{e ->
-            if(e is ResolvableApiException){
-                try {
-                    e.startResolutionForResult(this,100)
-                }catch(_: java.lang.Exception){}
-            }
+
+    private fun handleStateChange(state: LocationPickerViewModel.ReverseAddressViewState) {
+        if (state is LocationPickerViewModel.ReverseAddressViewState.Success && state.data.results.isNotEmpty()) {
+            binding.tvAddress.text = state.data.results[0].formatted_address
         }
     }
+
     private fun checkPermissions() {
         val locationPermissionRequest = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) { permissions ->
-            when {
-                permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) ||
-                        permissions.getOrDefault(
-                            Manifest.permission.ACCESS_COARSE_LOCATION,
-                            false
-                        ) -> {
-                    Toast.makeText(this, "Location access granted", Toast.LENGTH_SHORT).show()
-                    getLocation()
-                }
+            if (permissions.all { it.value }) {
+                Toast.makeText(this, "Location access granted", Toast.LENGTH_SHORT).show()
+                getLocation()
             }
         }
         locationPermissionRequest.launch(
@@ -146,51 +124,83 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
                 Manifest.permission.ACCESS_COARSE_LOCATION
             )
         )
-
     }
 
-    private val startForResult =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            val resultCode = result.resultCode
-            val data = result.data
-            if (resultCode == Activity.RESULT_OK && data != null) {
-                val place = Autocomplete.getPlaceFromIntent(data)
-                place.latLng?.let { animateCamera(it) }
-                binding.tvLocation.text = place.address
-            } else if (resultCode == Activity.RESULT_CANCELED) {
-                Toast.makeText(this, "You didn't make a choice ", Toast.LENGTH_SHORT).show()
-            }
-        }
-    private fun isLocationEnabled():Boolean{
-        val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
-        try {
-            return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-        }catch (e:Exception){
-            e.printStackTrace()
-        }
-        return false
-    }
-    private fun setUpObservers() {
-        viewModel.getReverseAddressViewState().flowWithLifecycle(lifecycle, Lifecycle.State.STARTED)
-            .onEach { state -> handleStateChange(state) }.launchIn(lifecycleScope)
-
-    }
-    private fun handleStateChange(state: LocationPickerViewModel.ReverseAddressViewState) {
-        when (state) {
-            LocationPickerViewModel.ReverseAddressViewState .Init -> Unit
-            is LocationPickerViewModel.ReverseAddressViewState.Error ->Unit
-            is LocationPickerViewModel.ReverseAddressViewState.IsLoading -> Unit
-            is LocationPickerViewModel.ReverseAddressViewState.Success -> {
-                if(state.data.results[0].formatted_address.isNotEmpty()){
-                    binding.tvAddress.text = state.data.results[0].formatted_address
+    @SuppressLint("MissingPermission")
+    private fun getLocation() {
+        if (isLocationEnabled()) {
+            val result = fusedLocationClient.getCurrentLocation(
+                Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                CancellationTokenSource().token
+            )
+            result.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val location = LatLng(task.result.latitude, task.result.longitude)
+                    animateCamera(location)
+                    addMarkerToLocation(location)
+                    viewModel.getReverseAddress(combineCoordinates(location))
+                } else {
+                    Toast.makeText(this, "Failed to get current location", Toast.LENGTH_SHORT).show()
                 }
+            }
+        } else {
+            showLocationServicePopup()
+        }
+    }
+    private fun animateCamera(latLng: LatLng) {
+        map?.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18f))
+    }
 
+    private fun addMarkerToLocation(latLng: LatLng) {
+        map?.clear()
+        val originalBitmap = BitmapFactory.decodeResource(resources, R.drawable.ic_map_pin)
+        val resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, 500, 500, false)
+        val icon = BitmapDescriptorFactory.fromBitmap(resizedBitmap)
+        map?.addMarker(MarkerOptions().position(latLng).icon(icon))
+    }
+
+    private fun showLocationServicePopup() {
+        val locationRequest = com.google.android.gms.location.LocationRequest.Builder(
+            Priority.PRIORITY_HIGH_ACCURACY, 10000
+        ).setMinUpdateIntervalMillis(5000).build()
+        val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
+        val client = LocationServices.getSettingsClient(this)
+        val task = client.checkLocationSettings(builder.build())
+        task.addOnFailureListener { e ->
+            if (e is ResolvableApiException) {
+                try {
+                    e.startResolutionForResult(this, 100)
+                } catch (_: java.lang.Exception) {
+                }
             }
         }
     }
+
+    private fun isLocationEnabled(): Boolean {
+        val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
+        return try {
+            locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    private val startForResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+            val place = Autocomplete.getPlaceFromIntent(result.data!!)
+            place.latLng?.let { viewModel.getReverseAddress(combineCoordinates(it)) }
+            place.latLng?.let { animateCamera(it) }
+            binding.tvLocation.text = place.address
+        } else if (result.resultCode == Activity.RESULT_CANCELED) {
+            Toast.makeText(this, "You didn't make a choice ", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun combineCoordinates(latLng: LatLng): String {
         return "${latLng.latitude},${latLng.longitude}"
     }
+
     companion object {
         fun createSimpleIntent(context: Context): Intent =
             Intent(context, LocationPickerActivity::class.java)

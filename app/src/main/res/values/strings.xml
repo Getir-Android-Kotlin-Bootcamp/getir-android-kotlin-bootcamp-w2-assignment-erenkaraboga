@@ -2,6 +2,5 @@
     <string name="app_name">LocationPicker</string>
     <string name="title_activity_location_picker">LocationPickerActivity</string>
     <string name="map_key">AIzaSyBWepIs-Vl4wPxKax15xOOOhcMOCCWE6wE</string>
-    <string name="BASE_URL">https://maps.googleapis.com/</string>
     <string name="Error">Unexpected Error</string>
 </resources>

@@ -21,11 +21,20 @@ android {
 
         buildFeatures {
             viewBinding = true
+            buildConfig =true
         }
     }
 
     buildTypes {
+        debug{
+            buildConfigField( "String", "BASE_URL", "\"https://maps.googleapis.com/\"")
+            buildConfigField( "String", "PLACES_KEY", "\"AIzaSyBWepIs-Vl4wPxKax15xOOOhcMOCCWE6wE\"")
+            buildConfigField( "String", "REVERSE_KEY", "\"AIzaSyCNse2zVzctP__gWmpZmmgak7p8hLuEQ-0\"")
+        }
         release {
+            buildConfigField( "String", "BASE_URL", "\"https://maps.googleapis.com/\"")
+            buildConfigField( "String", "PLACES_KEY", "\"AIzaSyBWepIs-Vl4wPxKax15xOOOhcMOCCWE6wE\"")
+            buildConfigField( "String", "REVERSE_KEY", "\"AIzaSyCNse2zVzctP__gWmpZmmgak7p8hLuEQ-0\"")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
