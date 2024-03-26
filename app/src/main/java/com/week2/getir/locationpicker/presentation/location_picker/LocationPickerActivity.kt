@@ -43,7 +43,7 @@ import kotlinx.coroutines.flow.onEach
 
 @AndroidEntryPoint
 class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
-
+    private var REQUEST_CODE_LOCATION =100
     private val viewModel: LocationPickerViewModel by viewModels()
     private lateinit var binding: ActivityLocationPickerBinding
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -114,7 +114,7 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
             ActivityResultContracts.RequestMultiplePermissions()
         ) { permissions ->
             if (permissions.all { it.value }) {
-                Toast.makeText(this, "Location access granted", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.location_access_granted), Toast.LENGTH_SHORT).show()
                 getLocation()
             }
         }
@@ -140,7 +140,7 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
                     addMarkerToLocation(location)
                     viewModel.getReverseAddress(combineCoordinates(location))
                 } else {
-                    Toast.makeText(this, "Failed to get current location", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.failed_to_get_location), Toast.LENGTH_SHORT).show()
                 }
             }
         } else {
@@ -193,7 +193,18 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
             place.latLng?.let { animateCamera(it) }
             binding.tvLocation.text = place.address
         } else if (result.resultCode == Activity.RESULT_CANCELED) {
-            Toast.makeText(this, "You didn't make a choice ", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.you_did_not_make_choice), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_CODE_LOCATION) {
+            if (resultCode == Activity.RESULT_OK) {
+                getLocation()
+            } else {
+                Toast.makeText(this, getString(R.string.you_did_not_make_choice), Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

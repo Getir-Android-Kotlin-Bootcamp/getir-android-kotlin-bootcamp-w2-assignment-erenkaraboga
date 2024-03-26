@@ -3,4 +3,10 @@
     <string name="title_activity_location_picker">LocationPickerActivity</string>
     <string name="map_key">AIzaSyBWepIs-Vl4wPxKax15xOOOhcMOCCWE6wE</string>
     <string name="Error">Unexpected Error</string>
+    <string name="where_is_your_location">Where is your location</string>
+    <string name="your_location">Your Location</string>
+    <string name="set_location">Set Location</string>
+    <string name="location_access_granted">Location access granted</string>
+    <string name="failed_to_get_location">Failed to get current location</string>
+    <string name="you_did_not_make_choice">You didn\'t make a choice</string>
 </resources>
