@@ -11,7 +11,11 @@ import android.location.LocationManager
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.flowWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -32,9 +36,13 @@ import com.google.android.libraries.places.widget.AutocompleteSupportFragment
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import com.week2.getir.locationpicker.R
 import com.week2.getir.locationpicker.databinding.ActivityLocationPickerBinding
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
-
+@AndroidEntryPoint
 class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
+    private val viewModel: LocationPickerViewModel by viewModels()
     private lateinit var binding: ActivityLocationPickerBinding
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private var map: GoogleMap? = null
@@ -46,6 +54,7 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
         initLocationService()
         checkPermissions()
         initAutoComplete()
+        setUpObservers()
         listener()
     }
 
@@ -93,6 +102,7 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
                val location = LatLng(it.result.latitude,it.result.longitude)
                animateCamera(location)
                addMarkerToLocation(location)
+               viewModel.getReverseAddress(combineCoordinates(location))
            }
        }
        else{
@@ -160,16 +170,27 @@ class LocationPickerActivity : AppCompatActivity(), OnMapReadyCallback {
         }
         return false
     }
-    fun resizeBitmap(drawableName: String?, width: Int, height: Int): Bitmap? {
-        val imageBitmap = BitmapFactory.decodeResource(
-            resources, resources.getIdentifier(
-                drawableName, "drawable",
-                packageName
-            )
-        )
-        return Bitmap.createScaledBitmap(imageBitmap, width, height, false)
-    }
+    private fun setUpObservers() {
+        viewModel.getReverseAddressViewState().flowWithLifecycle(lifecycle, Lifecycle.State.STARTED)
+            .onEach { state -> handleStateChange(state) }.launchIn(lifecycleScope)
 
+    }
+    private fun handleStateChange(state: LocationPickerViewModel.ReverseAddressViewState) {
+        when (state) {
+            LocationPickerViewModel.ReverseAddressViewState .Init -> Unit
+            is LocationPickerViewModel.ReverseAddressViewState.Error ->Unit
+            is LocationPickerViewModel.ReverseAddressViewState.IsLoading -> Unit
+            is LocationPickerViewModel.ReverseAddressViewState.Success -> {
+                if(state.data.results[0].formatted_address.isNotEmpty()){
+                    binding.tvAddress.text = state.data.results[0].formatted_address
+                }
+
+            }
+        }
+    }
+    private fun combineCoordinates(latLng: LatLng): String {
+        return "${latLng.latitude},${latLng.longitude}"
+    }
     companion object {
         fun createSimpleIntent(context: Context): Intent =
             Intent(context, LocationPickerActivity::class.java)
